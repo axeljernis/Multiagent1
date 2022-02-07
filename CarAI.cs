@@ -18,6 +18,8 @@ namespace UnityStandardAssets.Vehicles.Car
 
         List<Vector3> my_path;
         public List<float> pathAngles;
+        public List<float> pathAnglesDiff;
+
 
         public List<Vector3> path = new List<Vector3>();
 
@@ -56,6 +58,21 @@ namespace UnityStandardAssets.Vehicles.Car
                 //PathSegment.createVertexLine(angle - (float)(Math.PI / 2), my_path[1]);
             }
 
+            for (int i = 0; i < pathAngles.Count - 2; i++)
+            {
+
+                float anglediff = (float)Math.Abs((double)(pathAngles[i]- pathAngles[i+1]));
+                if (anglediff > Math.PI)
+                {
+                    anglediff = (float)(2 * Math.PI - (double)anglediff);
+                }
+
+                pathAnglesDiff.Add(anglediff);
+                
+                //PathSegment.createVertexLine(angle - (float)(Math.PI / 2), my_path[1]);
+            }
+
+            
 
             /*
             float angle = PathSegment.getAngleForMiddle(my_path[1], my_path[2]);
@@ -91,7 +108,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
             //Directions to neighbouring cells
             List<Vector2> neighbours = new List<Vector2>() {
-                new Vector2(0,3),
+                new Vector2(0, 3),
                 new Vector2(3,0),
                 new Vector2(0,-3),
                 new Vector2(-3,0),
@@ -100,17 +117,17 @@ namespace UnityStandardAssets.Vehicles.Car
                 new Vector2(2,-2),
                 new Vector2(-2,2),
 
-                new Vector2(1,2),
-                new Vector2(2,1),
+                new Vector2(2,4),
+                new Vector2(4,2),
 
-                new Vector2(-1,-2),
-                new Vector2(-2,-1),
+                new Vector2(-2,-4),
+                new Vector2(-4,-2),
 
-                new Vector2(1,-2),
-                new Vector2(2,-1),
+                new Vector2(2,-4),
+                new Vector2(4,-2),
 
-                new Vector2(-1,2),
-                new Vector2(-2,1),
+                new Vector2(-2,4),
+                new Vector2(-4,2),
 
 
                 new Vector2(1,3),
@@ -136,6 +153,59 @@ namespace UnityStandardAssets.Vehicles.Car
 
                 new Vector2(-2,3),
                 new Vector2(-3,2),
+
+
+                 new Vector2(1,4),
+                new Vector2(4,1),
+
+                new Vector2(-1,-4),
+                new Vector2(-4,-1),
+
+                new Vector2(1,-4),
+                new Vector2(4,-1),
+
+                new Vector2(-1,4),
+                new Vector2(-4,1),
+                /*
+                new Vector2(2,5),
+                new Vector2(5,2),
+
+                new Vector2(-2,-5),
+                new Vector2(-5,-2),
+
+                new Vector2(2,-5),
+                new Vector2(5,-2),
+
+                new Vector2(-2,5),
+                new Vector2(-5,2),
+                */
+
+
+                /*
+                  new Vector2(1,5),
+                new Vector2(5,1),
+
+                new Vector2(-1,-5),
+                new Vector2(-5,-1),
+
+                new Vector2(1,-5),
+                new Vector2(5,-1),
+
+                new Vector2(-1,5),
+                new Vector2(-5,1),
+
+                new Vector2(3,5),
+                new Vector2(5,3),
+
+                new Vector2(-3,-5),
+                new Vector2(-5,-3),
+
+                new Vector2(3,-5),
+                new Vector2(5,-3),
+
+                new Vector2(-3,5),
+                new Vector2(-5,3),
+                */
 
 
             };
@@ -168,11 +238,16 @@ namespace UnityStandardAssets.Vehicles.Car
             Debug.Log(m_Car.transform.forward.x + " " + m_Car.transform.forward.y);
             int counter = 0;
             //while last_pos not goal position
-            while ((lastPos.i != i_goal || lastPos.j != j_goal) && counter <= 2000000)
+            while ((lastPos.i != i_goal || lastPos.j != j_goal) && counter <= 200000)
             {
                 counter += 1;
                 foreach (Vector2 direction in neighbours)
                 {
+                    if (Vector2.Angle(lastPos.direction, direction) > 30)
+                    {
+                        continue;
+                    }
+
                     int new_i = (int)(lastPos.i + direction.x);
                     int new_j = (int)(lastPos.j + direction.y);
 
@@ -214,27 +289,20 @@ namespace UnityStandardAssets.Vehicles.Car
                     //}
                     //Debug.Log(pathLength);
                     Vector2 lastdirection;
-                    if (temp_path.Count == 10000000000000)
-                    {
-                        lastdirection = m_Car.transform.forward;
-                    }
-                    else
-                    {
-                        lastdirection = lastPos.direction;
-                    }
+                    lastdirection = lastPos.direction;
 
                     float anglediff = Vector2.Angle(lastdirection, direction);
-                    Debug.Log(anglediff + "angleddddddddif" + lastdirection.x + " " + lastdirection.y + " " + direction.x);
                     //calculate the distance travelled (distance to lastpos + lastPos distance to start)
                     float g = Vector2.Distance(new Vector2(lastPos.i, lastPos.j), new Vector2(new_i, new_j)) + lastPos.g;
                     //calculate the distance to the goal
-                    float h = Vector2.Distance(new Vector2(new_i, new_j), new Vector2(large_get_i_index(goal_pos.x,newMap, tinfo), large_get_j_index(goal_pos.z, newMap, tinfo))) + (anglediff*anglediff);//add expression for angle diff
+                    float h = Vector2.Distance(new Vector2(new_i, new_j), new Vector2(large_get_i_index(goal_pos.x, newMap, tinfo), large_get_j_index(goal_pos.z, newMap, tinfo))) + (anglediff* anglediff* anglediff* anglediff);//add expression for angle diff
                     float f = g + h;
 
                     //Add the distance and fitness values
                     pathP.h = h;
                     pathP.g = g;
                     pathP.f = f;
+                    pathP.anglediff = anglediff;
                     pathP.direction = direction;
                     //add it to the open list
 
@@ -273,6 +341,7 @@ namespace UnityStandardAssets.Vehicles.Car
             foreach (PathPoint p in temp_path)
             {
                 path.Add(new Vector3(large_get_i_pos(p.i, newMap, tinfo), 0, large_get_j_pos(p.j, newMap, tinfo)));
+                //pathAnglesDiff.Add(p.anglediff);
             }
             return path;
         }
@@ -296,7 +365,7 @@ namespace UnityStandardAssets.Vehicles.Car
 
         private float[,] traversableMap(float[,] oldMap)
         {
-            int size = 250;
+            int size = 300;
             float sizex = (float)size / oldMap.GetLength(0);
             float sizez = (float)size / oldMap.GetLength(1);
             float factor = (float)oldMap.GetLength(1) / (float)oldMap.GetLength(0);
@@ -449,9 +518,12 @@ namespace UnityStandardAssets.Vehicles.Car
         float rotationangle = 0;
         int towards = 1;
         float lastDistance = 10000000000;
+        float lastDistanceCar = 100000000;
         Vector3 oldPos = Vector3.zero;
         float oldRotAngle = 0;
         float oldRotAngle2 = 0;
+        float reverse = 1;
+        float timeout = 0;
 
         private void FixedUpdate()
         {
@@ -532,11 +604,17 @@ namespace UnityStandardAssets.Vehicles.Car
                 {
                     towards = -1;
                     distRay = 0.4f;
-                    biasRay = 20;
+                    //biasRay = 300;
                 }
                 lastDistance = distRay;
 
 
+                float angletowp = PathSegment.getAngleForMiddle(carPos + 1.5f*m_Car.transform.forward, my_path[wp]);
+                float dirwp = 1;
+                if (Math.Abs((double)(rotationangle - angletowp)) > Math.PI)
+                {
+                    dirwp = -1;
+                }
 
                 //Debug.Log(distRay + " 0");
                 //Debug.Log(lastDistance);
@@ -548,19 +626,67 @@ namespace UnityStandardAssets.Vehicles.Car
                 {
                     dir = -1;
                 }
-                float angleDiff = (1 + biasRay)*(rotationangle - pathAngles[wp]);
-                Debug.Log(pathAngles[wp]);
+                //float angleDiff = (1 + biasRay)*(rotationangle - pathAngles[wp]);
+                float angleDiff = (30 + biasRay) * (rotationangle - angletowp) * (rotationangle - angletowp) *(rotationangle - angletowp);
+
+                //Debug.Log(pathAngles[wp]);
                 //Debug.Log(angleDiff + " anglediff");
-                Debug.Log(rotationangle + " rotationangle");
+                //Debug.Log(rotationangle + " rotationangle");
                 //Debug.Log(distRay);
 
 
-                float turningratio = (angleDiff*dir) / (float)(Math.Pow((double)distRay, 2));
-                if (PathSegment.getDistToWP(my_path[wp], carPos.z, carPos.x) < 1)
+                //float turningratio = (angleDiff*dir) / distRay;
+                float turningratio = (angleDiff * dirwp);
+
+                if (PathSegment.getDistToWP(my_path[wp]-0*m_Car.transform.forward, carPos.z, carPos.x) < 3.5f)
                 {
                     wp++;
                     towards = 1;
                     lastDistance = 100000;
+                }
+
+                if (PathSegment.getDistToWP(my_path[wp] - m_Car.transform.forward, carPos.z, carPos.x) < 3f && distWP > lastDistanceCar)
+                {
+                    wp++;
+                    towards = 1;
+                    lastDistance = 100000;
+                    lastDistanceCar = 100000;
+
+                }
+                lastDistanceCar = distWP;
+
+                //Check if straight ahead
+                float sum = 0;
+                for(int k = wp; k<6+wp; k++)
+                {
+                    if(pathAnglesDiff.Count-1 < k)
+                    {
+                        break;
+                    }
+                    sum += pathAnglesDiff[k]* pathAnglesDiff[k];
+                }
+
+                float sumNear = 0;
+                for (int k = wp; k < 2 + wp; k++)
+                {
+                    if (pathAnglesDiff.Count - 1 < k)
+                    {
+                        break;
+                    }
+                    sumNear += pathAnglesDiff[k];
+                }
+
+                float dyn = 0;
+                for (int k = wp; k < 20 + wp; k++)
+                {
+                    if (pathAnglesDiff.Count - 1 < k)
+                    {
+                        break;
+                    }
+                    if (dyn < (float)Math.Abs((double)pathAnglesDiff[k]) / (PathSegment.getDistToWP(my_path[k], carPos.z, carPos.x) + 6f))
+                    {
+                        dyn = (float)Math.Abs((double)pathAnglesDiff[k]) / (PathSegment.getDistToWP(my_path[k], carPos.z, carPos.x) + 6f);
+                    }
                 }
 
 
@@ -570,17 +696,62 @@ namespace UnityStandardAssets.Vehicles.Car
                 //Debug.Log(pathAngles[2] + " path");
                 //Debug.Log(pathAngles[3] + " path");
 
-                //Debug.Log(rotationangle);
+                //Debug.Log(rotationangle + "rot");
+                //Debug.Log(angletowp);
+                //Debug.Log(dyn + " dyn");
+
+                
                 //Debug.Log(wp);
 
 
                 // this is how you control the car
-                float acc = 0.8f;
-                if (velocity.magnitude > 5f)
+                float acc = 1f;
+                float brake = 1f;
+                float speed = 3f;
+                
+                speed = 24 - dyn * 550f;
+                if (dyn > 0.035)
+                {
+                    speed = 6f;
+                }
+                if (velocity.magnitude < 8 && sum < 0.3)
+                {
+                    //speed = 9;
+                }
+                if((-0.5f > turningratio || 0.5f < turningratio) && speed > 18 && (pathAngles[wp] < 6 && pathAngles[wp] > 0.1f))
+                {
+                    speed = 18;
+                }
+
+                if ((-100f > turningratio || 100 < turningratio) && speed > 10 && (pathAngles[wp] < 6 && pathAngles[wp] > 0.1f))
+                {
+                    speed = 10;
+                }
+
+                if (velocity.magnitude > speed)
                 {
                     acc = 0f;
+                    brake = -1f;
                 }
-                m_Car.Move(turningratio, acc, 0f, 0f);
+                if ((velocity.magnitude < 0.05 || reverse == -1) && wp > 2) //&& hit.distance < 5f)
+                {
+                    turningratio = 0f;
+                    acc = -1f;
+                    brake = -1f;
+                    reverse = -1;   
+                }
+                if(hit.distance > 5f)
+                {
+                    reverse = 1;
+                }
+                Debug.Log(hit.distance + " hit");
+                Debug.Log(velocity.magnitude + " vel");
+                Debug.Log(reverse + " rev");
+                Debug.Log(turningratio + " turn");
+                Debug.Log(speed + " speed");
+
+
+                m_Car.Move(turningratio, acc, brake, 0f);
             }
 
         }
@@ -706,6 +877,8 @@ namespace UnityStandardAssets.Vehicles.Car
         //Total Fitness
         public float f;
 
+        public float anglediff;
+
         //direction
         public Vector2 direction;
 
@@ -717,6 +890,7 @@ namespace UnityStandardAssets.Vehicles.Car
             g = 0.0f;
             f = 0.0f;
             direction = new Vector2(0f, 0f);
+            anglediff = 0.0f;
             parentNode = this;
         }
 

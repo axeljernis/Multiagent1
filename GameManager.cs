@@ -35,6 +35,7 @@ public class GameManager : MonoBehaviour {
             if ((race_car.transform.position - terrain_manager.myInfo.goal_pos).magnitude < goal_tolerance)
             {
                 completion_time = Time.time - start_time;
+                Debug.Log(completion_time + " doooooooooooone");
                 finished = true;
             }
         }
